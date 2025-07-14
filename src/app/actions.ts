@@ -7,6 +7,7 @@ import { addDoc, collection, getDocs, doc, updateDoc, deleteDoc, serverTimestamp
 import { Resend } from 'resend';
 import { RegistrationConfirmationEmail } from '@/emails/registration-confirmation';
 import { revalidatePath } from "next/cache";
+import { NotificationEmail } from "@/emails/notification";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -69,6 +70,40 @@ export async function submitRegistration(data: { name: string; email: string; ph
         success: false,
     }
   }
+}
+
+const sendEmailSchema = z.object({
+    name: z.string(),
+    email: z.string().email(),
+});
+
+export async function sendNotificationEmail(data: { name: string; email: string; }) {
+    const validatedFields = sendEmailSchema.safeParse(data);
+
+    if (!validatedFields.success) {
+        return { success: false, message: "Invalid data provided." };
+    }
+
+    const { name, email } = validatedFields.data;
+
+    try {
+        const toEmail = process.env.NODE_ENV === 'development' 
+            ? 'invictussevenfold@gmail.com' 
+            : email;
+
+        await resend.emails.send({
+            from: 'onboarding@resend.dev',
+            to: toEmail,
+            subject: 'A Message from the Event Team',
+            react: NotificationEmail({ name }),
+        });
+        
+        return { success: true, message: `Email sent to ${name} successfully.` };
+
+    } catch (error) {
+        console.error("Error sending notification email:", error);
+        return { success: false, message: "Failed to send email." };
+    }
 }
 
 
