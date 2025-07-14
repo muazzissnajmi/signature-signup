@@ -1,5 +1,8 @@
 import { RegistrationForm } from '@/components/registration-form';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 
 export default function Home() {
   return (
@@ -12,6 +15,13 @@ export default function Home() {
         <CardContent>
           <RegistrationForm />
         </CardContent>
+        <CardFooter className="flex justify-end">
+            <Button asChild variant="ghost">
+                <Link href="/admin">
+                    Admin Panel <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+            </Button>
+        </CardFooter>
       </Card>
     </main>
   );
