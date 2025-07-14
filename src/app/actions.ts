@@ -2,10 +2,8 @@
 "use server";
 
 import { z } from "zod";
-import { db, storage } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { ref, uploadString, getDownloadURL } from "firebase/storage";
-import { v4 as uuidv4 } from 'uuid';
 import { Resend } from 'resend';
 import { RegistrationConfirmationEmail } from '@/emails/registration-confirmation';
 
@@ -20,13 +18,6 @@ const registrationSchema = z.object({
   photo: z.string().min(1, { message: "Photo is required." }),
 });
 
-async function uploadImage(dataUrl: string, path: string): Promise<string> {
-    const storageRef = ref(storage, path);
-    const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    return downloadURL;
-}
-
 export async function submitRegistration(data: { name: string; email: string; phone: string; categoryId: string; signature: string; photo: string; }) {
   const validatedFields = registrationSchema.safeParse(data);
 
@@ -39,18 +30,12 @@ export async function submitRegistration(data: { name: string; email: string; ph
   }
 
   try {
-    const { signature, photo, ...formData } = validatedFields.data;
-    
-    const photoFileName = `${uuidv4()}.jpeg`;
-    const signatureFileName = `${uuidv4()}.png`;
-
-    const photoURL = await uploadImage(photo, `photos/${photoFileName}`);
-    const signatureURL = await uploadImage(signature, `signatures/${signatureFileName}`);
+    const { photo, signature, ...formData } = validatedFields.data;
 
     await addDoc(collection(db, "registrations"), {
         ...formData,
-        photoURL,
-        signatureURL,
+        photoURL: photo, // Store the photo data URI directly
+        signatureURL: signature, // Store the signature data URI directly
         createdAt: serverTimestamp(),
     });
 
