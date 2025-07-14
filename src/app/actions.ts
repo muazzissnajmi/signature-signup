@@ -3,11 +3,14 @@
 
 import { z } from "zod";
 import { db } from "@/lib/firebase";
-import { addDoc, collection, getDocs, doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
+import { addDoc, collection, getDocs, doc, updateDoc, deleteDoc, serverTimestamp, query, orderBy, getDoc } from "firebase/firestore";
 import { Resend } from 'resend';
 import { RegistrationConfirmationEmail } from '@/emails/registration-confirmation';
 import { revalidatePath } from "next/cache";
-import { NotificationEmail } from "@/emails/notification";
+import { RegistrationPassEmail } from '@/emails/registration-pass';
+import { RegistrationPassPdf } from "@/emails/pdf/registration-pass-pdf";
+import { renderToBuffer } from "@react-pdf/renderer";
+import { Buffer } from "buffer";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -33,17 +36,14 @@ export async function submitRegistration(data: { name: string; email: string; ph
   }
 
   try {
-    const { photo, signature, ...formData } = validatedFields.data;
+    const { ...formData } = validatedFields.data;
 
     await addDoc(collection(db, "registrations"), {
         ...formData,
-        photoURL: photo, 
-        signatureURL: signature, 
         createdAt: serverTimestamp(),
     });
 
     try {
-      // For development, send email to a fixed, verified address to avoid Resend errors.
       const toEmail = process.env.NODE_ENV === 'development' 
         ? 'invictussevenfold@gmail.com' 
         : formData.email;
@@ -73,32 +73,56 @@ export async function submitRegistration(data: { name: string; email: string; ph
 }
 
 const sendEmailSchema = z.object({
-    name: z.string(),
-    email: z.string().email(),
+    registrationId: z.string(),
 });
 
-export async function sendNotificationEmail(data: { name: string; email: string; }) {
+export async function sendRegistrationPassEmail(data: { registrationId: string; }) {
     const validatedFields = sendEmailSchema.safeParse(data);
 
     if (!validatedFields.success) {
         return { success: false, message: "Invalid data provided." };
     }
 
-    const { name, email } = validatedFields.data;
+    const { registrationId } = validatedFields.data;
 
     try {
+        const docRef = doc(db, "registrations", registrationId);
+        const docSnap = await getDoc(docRef);
+
+        if (!docSnap.exists()) {
+            return { success: false, message: "Registration not found." };
+        }
+
+        const registrationData = docSnap.data();
+
+        const pdfBuffer = await renderToBuffer(
+            RegistrationPassPdf({
+                name: registrationData.name,
+                phone: registrationData.phone,
+                category: registrationData.categoryId,
+                photoUrl: registrationData.photo,
+                signatureUrl: registrationData.signature,
+            })
+        );
+        
         const toEmail = process.env.NODE_ENV === 'development' 
             ? 'invictussevenfold@gmail.com' 
-            : email;
+            : registrationData.email;
 
         await resend.emails.send({
             from: 'onboarding@resend.dev',
             to: toEmail,
-            subject: 'A Message from the Event Team',
-            react: NotificationEmail({ name }),
+            subject: 'Your Event Registration Pass',
+            react: RegistrationPassEmail({ name: registrationData.name }),
+            attachments: [
+                {
+                    filename: 'RegistrationPass.pdf',
+                    content: pdfBuffer,
+                },
+            ],
         });
         
-        return { success: true, message: `Email sent to ${name} successfully.` };
+        return { success: true, message: `Email sent to ${registrationData.name} successfully.` };
 
     } catch (error) {
         console.error("Error sending notification email:", error);
