@@ -1,3 +1,18 @@
+import { RegistrationForm } from '@/components/registration-form';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+
 export default function Home() {
-  return <></>;
+  return (
+    <main className="flex min-h-screen w-full items-center justify-center bg-background p-4 sm:p-6 lg:p-8">
+      <Card className="w-full max-w-2xl shadow-lg">
+        <CardHeader className="text-center">
+          <CardTitle className="text-3xl font-bold text-primary">Participant Registration</CardTitle>
+          <CardDescription className="text-lg">Please fill out the form below to register.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RegistrationForm />
+        </CardContent>
+      </Card>
+    </main>
+  );
 }
