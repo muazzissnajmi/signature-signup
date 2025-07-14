@@ -6,10 +6,11 @@ const registrationSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
   phone: z.string().min(10, { message: "Please enter a valid phone number." }),
+  categoryId: z.string().min(1, { message: "Please select a category." }),
   signature: z.string().min(1, { message: "Signature is required." }),
 });
 
-export async function submitRegistration(data: { name: string; email: string; phone: string; signature: string; }) {
+export async function submitRegistration(data: { name: string; email: string; phone: string; categoryId: string; signature: string; }) {
   const validatedFields = registrationSchema.safeParse(data);
 
   if (!validatedFields.success) {

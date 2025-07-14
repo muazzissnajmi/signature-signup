@@ -5,11 +5,18 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Image from "next/image";
-import { Mail, Phone, User, PenSquare } from "lucide-react";
+import { Mail, Phone, User, PenSquare, Info } from "lucide-react";
 
 import { submitRegistration } from "@/app/actions";
 import { SignaturePad } from "@/components/signature-pad";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -28,11 +35,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+
+const categories = [
+    { id: "cat1", name: "General Admission", description: "Access to all general areas and talks. Does not include workshops." },
+    { id: "cat2", name: "VIP Pass", description: "Includes all General Admission benefits, plus access to the VIP lounge and exclusive workshops." },
+    { id: "cat3", name: "Student Discount", description: "Special discounted rate for currently enrolled students. Valid student ID required at check-in." },
+];
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email address."),
   phone: z.string().min(10, "Please enter a valid 10-digit phone number.").max(15),
+  categoryId: z.string({ required_error: "Please select a category."}).min(1, "Please select a category."),
 });
 
 export function RegistrationForm() {
@@ -47,8 +63,12 @@ export function RegistrationForm() {
       name: "",
       email: "",
       phone: "",
+      categoryId: "",
     },
   });
+
+  const watchedCategoryId = form.watch("categoryId");
+  const selectedCategory = categories.find(cat => cat.id === watchedCategoryId);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     if (!signature) {
@@ -141,6 +161,39 @@ export function RegistrationForm() {
                 </FormItem>
               )}
             />
+             <FormField
+              control={form.control}
+              name="categoryId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Registration Category</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category..." />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {categories.map(category => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {selectedCategory && (
+                <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>{selectedCategory.name} Details</AlertTitle>
+                    <AlertDescription>
+                        {selectedCategory.description}
+                    </AlertDescription>
+                </Alert>
+            )}
           </div>
 
           <Separator />
