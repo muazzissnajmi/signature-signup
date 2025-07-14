@@ -1,3 +1,4 @@
+
 "use server";
 
 import { z } from "zod";
@@ -8,9 +9,10 @@ const registrationSchema = z.object({
   phone: z.string().min(10, { message: "Please enter a valid phone number." }),
   categoryId: z.string().min(1, { message: "Please select a category." }),
   signature: z.string().min(1, { message: "Signature is required." }),
+  photo: z.string().min(1, { message: "Photo is required." }),
 });
 
-export async function submitRegistration(data: { name: string; email: string; phone: string; categoryId: string; signature: string; }) {
+export async function submitRegistration(data: { name: string; email: string; phone: string; categoryId: string; signature: string; photo: string; }) {
   const validatedFields = registrationSchema.safeParse(data);
 
   if (!validatedFields.success) {
@@ -22,7 +24,10 @@ export async function submitRegistration(data: { name: string; email: string; ph
   }
 
   // Simulate saving data to a database
-  console.log("Registration Submitted:", validatedFields.data);
+  console.log("Registration Submitted:", {
+      ...validatedFields.data,
+      photo: validatedFields.data.photo.substring(0, 50) + "...", // Don't log the full data URI
+  });
   await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network latency
 
   return { 
@@ -30,3 +35,5 @@ export async function submitRegistration(data: { name: string; email: string; ph
     success: true,
   };
 }
+
+    

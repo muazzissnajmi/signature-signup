@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useRef, useEffect, useState, type ComponentPropsWithoutRef } from 'react';
@@ -12,6 +13,7 @@ interface SignaturePadProps extends ComponentPropsWithoutRef<'canvas'> {
 export function SignaturePad({ onSave, onClear, className, ...props }: SignaturePadProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isSigned, setIsSigned] = useState(false);
 
   const getContext = () => canvasRef.current?.getContext('2d');
 
@@ -60,6 +62,7 @@ export function SignaturePad({ onSave, onClear, className, ...props }: Signature
         ctx.beginPath();
         ctx.moveTo(coords.x, coords.y);
         setIsDrawing(true);
+        setIsSigned(true);
       }
     }
   };
@@ -90,20 +93,15 @@ export function SignaturePad({ onSave, onClear, className, ...props }: Signature
     const ctx = getContext();
     if (canvas && ctx) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      setIsSigned(false);
       onClear();
     }
   };
 
   const handleSave = () => {
     const canvas = canvasRef.current;
-    if (canvas) {
-      const blank = document.createElement('canvas');
-      blank.width = canvas.width;
-      blank.height = canvas.height;
-      if (canvas.toDataURL() === blank.toDataURL()) {
-        return;
-      }
-      onSave(canvas.toDataURL('image/png'));
+    if (canvas && isSigned) {
+        onSave(canvas.toDataURL('image/png'));
     }
   };
 
@@ -123,8 +121,10 @@ export function SignaturePad({ onSave, onClear, className, ...props }: Signature
       />
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={handleClear}>Clear</Button>
-        <Button type="button" onClick={handleSave} className="bg-accent hover:bg-accent/90">Save Signature</Button>
+        <Button type="button" onClick={handleSave} disabled={!isSigned} className="bg-accent hover:bg-accent/90">Save Signature</Button>
       </div>
     </div>
   );
 }
+
+    

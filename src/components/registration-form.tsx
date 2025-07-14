@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useTransition } from "react";
@@ -5,10 +6,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Image from "next/image";
-import { Mail, Phone, User, PenSquare, Info } from "lucide-react";
+import { Mail, Phone, User, PenSquare, Info, Camera } from "lucide-react";
 
 import { submitRegistration } from "@/app/actions";
 import { SignaturePad } from "@/components/signature-pad";
+import { PhotoCapture } from "@/components/photo-capture";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -54,7 +56,9 @@ const formSchema = z.object({
 export function RegistrationForm() {
   const [isPending, startTransition] = useTransition();
   const [signature, setSignature] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -80,8 +84,18 @@ export function RegistrationForm() {
       return;
     }
 
+    if (!photo) {
+      toast({
+          variant: "destructive",
+          title: "Photo Required",
+          description: "Please provide your photo before submitting.",
+      });
+      return;
+    }
+
     startTransition(async () => {
-      const result = await submitRegistration({ ...values, signature });
+      // The action doesn't handle the photo yet, but we can pass it
+      const result = await submitRegistration({ ...values, signature, photo });
       if (result.success) {
         toast({
           title: "Success!",
@@ -89,6 +103,7 @@ export function RegistrationForm() {
         });
         form.reset();
         setSignature(null);
+        setPhoto(null);
       } else {
         toast({
           variant: "destructive",
@@ -101,12 +116,14 @@ export function RegistrationForm() {
 
   const handleSaveSignature = (data: string) => {
     setSignature(data);
-    setIsModalOpen(false);
+    setIsSignatureModalOpen(false);
+  };
+
+  const handleSavePhoto = (data: string) => {
+    setPhoto(data);
+    setIsPhotoModalOpen(false);
   };
   
-  const handleClearSignature = () => {
-    setSignature(null);
-  }
 
   return (
     <>
@@ -198,29 +215,55 @@ export function RegistrationForm() {
 
           <Separator />
 
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Signature</h3>
-            <div className="p-4 border-dashed border-2 rounded-lg flex flex-col items-center justify-center gap-4 min-h-[150px]">
-              {signature ? (
-                <>
-                  <Image src={signature} alt="User signature" width={300} height={100} className="bg-white rounded-md shadow-inner" />
-                  <Button type="button" variant="outline" onClick={() => setIsModalOpen(true)}>
-                    <PenSquare className="mr-2 h-4 w-4" /> Redraw Signature
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <p className="text-muted-foreground">Your signature is required.</p>
-                  <Button type="button" variant="secondary" onClick={() => setIsModalOpen(true)}>
-                    <PenSquare className="mr-2 h-4 w-4" /> Add Signature
-                  </Button>
-                </>
-              )}
-            </div>
-            {!signature && form.formState.isSubmitted && (
-                 <p className="text-sm font-medium text-destructive">Signature is required.</p>
-            )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Participant Photo</h3>
+                <div className="p-4 border-dashed border-2 rounded-lg flex flex-col items-center justify-center gap-4 min-h-[150px] aspect-square">
+                  {photo ? (
+                    <>
+                      <Image src={photo} alt="Participant photo" width={300} height={300} className="bg-white rounded-md shadow-inner object-cover w-full h-full" />
+                      <Button type="button" variant="outline" onClick={() => setIsPhotoModalOpen(true)}>
+                        <Camera className="mr-2 h-4 w-4" /> Retake Photo
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-muted-foreground text-center">Your photo is required for your ID badge.</p>
+                      <Button type="button" variant="secondary" onClick={() => setIsPhotoModalOpen(true)}>
+                        <Camera className="mr-2 h-4 w-4" /> Add Photo
+                      </Button>
+                    </>
+                  )}
+                </div>
+                {!photo && form.formState.isSubmitted && (
+                    <p className="text-sm font-medium text-destructive">Photo is required.</p>
+                )}
+              </div>
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Signature</h3>
+                <div className="p-4 border-dashed border-2 rounded-lg flex flex-col items-center justify-center gap-4 min-h-[150px] aspect-square">
+                  {signature ? (
+                    <>
+                      <Image src={signature} alt="User signature" width={300} height={150} className="bg-white rounded-md shadow-inner" />
+                      <Button type="button" variant="outline" onClick={() => setIsSignatureModalOpen(true)}>
+                        <PenSquare className="mr-2 h-4 w-4" /> Redraw Signature
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-muted-foreground">Your signature is required.</p>
+                      <Button type="button" variant="secondary" onClick={() => setIsSignatureModalOpen(true)}>
+                        <PenSquare className="mr-2 h-4 w-4" /> Add Signature
+                      </Button>
+                    </>
+                  )}
+                </div>
+                {!signature && form.formState.isSubmitted && (
+                    <p className="text-sm font-medium text-destructive">Signature is required.</p>
+                )}
+              </div>
           </div>
+
 
           <Button type="submit" className="w-full text-lg py-6 bg-primary hover:bg-primary/90" disabled={isPending}>
             {isPending ? "Submitting..." : "Submit Registration"}
@@ -228,7 +271,7 @@ export function RegistrationForm() {
         </form>
       </Form>
       
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      <Dialog open={isSignatureModalOpen} onOpenChange={setIsSignatureModalOpen}>
         <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
             <DialogTitle>Provide Your Signature</DialogTitle>
@@ -236,9 +279,23 @@ export function RegistrationForm() {
               Please sign in the box below. Click "Save" when you are finished.
             </DialogDescription>
           </DialogHeader>
-          <SignaturePad onSave={handleSaveSignature} onClear={handleClearSignature} />
+          <SignaturePad onSave={handleSaveSignature} onClear={() => setSignature(null)} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPhotoModalOpen} onOpenChange={setIsPhotoModalOpen}>
+        <DialogContent className="sm:max-w-[625px]">
+          <DialogHeader>
+            <DialogTitle>Capture Your Photo</DialogTitle>
+            <DialogDescription>
+              Use your camera to take a photo or upload a file. This will be used for your participant badge.
+            </DialogDescription>
+          </DialogHeader>
+          <PhotoCapture onSave={handleSavePhoto} />
         </DialogContent>
       </Dialog>
     </>
   );
 }
+
+    
