@@ -42,9 +42,14 @@ export async function submitRegistration(data: { name: string; email: string; ph
     });
 
     try {
+      // For development, send email to a fixed, verified address to avoid Resend errors.
+      const toEmail = process.env.NODE_ENV === 'development' 
+        ? 'invictussevenfold@gmail.com' 
+        : formData.email;
+
       await resend.emails.send({
-        from: 'Signature Signup <onboarding@resend.dev>',
-        to: formData.email,
+        from: 'onboarding@resend.dev',
+        to: toEmail,
         subject: 'Registration Confirmation',
         react: RegistrationConfirmationEmail({ name: formData.name }),
       });
@@ -60,7 +65,7 @@ export async function submitRegistration(data: { name: string; email: string; ph
   } catch (error) {
     console.error("Registration submission error:", error);
     return {
-      message: error instanceof Error ? error.message : String(error),
+      message: error instanceof Error ? error.message : "An unexpected error occurred while submitting your registration. Please try again.",
         success: false,
     }
   }
@@ -112,7 +117,7 @@ export async function addCategory(data: { name: string; description: string; }) 
         revalidatePath("/");
         return { success: true, message: "Category added successfully." };
     } catch (error) {
-        return { success: false, message: "Failed to add category." };
+        return { success: false, message: error instanceof Error ? error.message : String(error) };
     }
 }
 
