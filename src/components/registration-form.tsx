@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -38,13 +38,9 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { getCategories } from "@/app/actions";
+import type { Category } from "@/app/actions";
 
-
-const categories = [
-    { id: "cat1", name: "General Admission", description: "Access to all general areas and talks. Does not include workshops." },
-    { id: "cat2", name: "VIP Pass", description: "Includes all General Admission benefits, plus access to the VIP lounge and exclusive workshops." },
-    { id: "cat3", name: "Student Discount", description: "Special discounted rate for currently enrolled students. Valid student ID required at check-in." },
-];
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -60,6 +56,24 @@ export function RegistrationForm() {
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const { toast } = useToast();
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+        const result = await getCategories();
+        if (result.success && result.data) {
+            setCategories(result.data);
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Failed to load categories",
+                description: result.message,
+            });
+        }
+    };
+    fetchCategories();
+  }, [toast]);
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -94,8 +108,10 @@ export function RegistrationForm() {
     }
 
     startTransition(async () => {
-      // The action doesn't handle the photo yet, but we can pass it
-      const result = await submitRegistration({ ...values, signature, photo });
+      // Find the category name to pass to the action
+      const categoryName = categories.find(c => c.id === values.categoryId)?.name || values.categoryId;
+      const result = await submitRegistration({ ...values, categoryId: categoryName, signature, photo });
+      
       if (result.success) {
         toast({
           title: "Success!",
@@ -184,7 +200,7 @@ export function RegistrationForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Registration Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a category..." />
@@ -265,7 +281,7 @@ export function RegistrationForm() {
           </div>
 
 
-          <Button type="submit" className="w-full text-lg py-6 bg-primary hover:bg-primary/90" disabled={isPending}>
+          <Button type="submit" className="w-full text-lg py-6 bg-primary hover:bg-primary/90" disabled={isPending || categories.length === 0}>
             {isPending ? "Submitting..." : "Submit Registration"}
           </Button>
         </form>
@@ -297,5 +313,3 @@ export function RegistrationForm() {
     </>
   );
 }
-
-    

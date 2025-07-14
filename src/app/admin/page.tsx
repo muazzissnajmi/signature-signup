@@ -10,23 +10,12 @@ import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { getAuth } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminPage() {
   const { user, loading } = useAuth();
-  const router = useRouter();
-  const auth = getAuth();
   const [registrations, setRegistrations] = useState<DocumentData[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [user, loading, router]);
 
   useEffect(() => {
     if (user) {
@@ -47,47 +36,35 @@ export default function AdminPage() {
     }
   }, [user]);
 
-  const handleSignOut = async () => {
-    await auth.signOut();
-    router.push('/login');
-  };
-
   if (loading || !user) {
     return (
-        <div className="flex min-h-screen w-full items-center justify-center">
-            <div className="w-full max-w-4xl p-4">
-                 <Card>
-                    <CardHeader>
-                        <Skeleton className="h-8 w-1/2" />
-                        <Skeleton className="h-4 w-3/4" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {[...Array(5)].map((_, i) => (
-                                <div key={i} className="flex items-center space-x-4">
-                                    <Skeleton className="h-12 w-12 rounded-full" />
-                                    <div className="space-y-2">
-                                        <Skeleton className="h-4 w-[250px]" />
-                                        <Skeleton className="h-4 w-[200px]" />
-                                    </div>
+        <div className="w-full">
+             <Card>
+                <CardHeader>
+                    <Skeleton className="h-8 w-1/2" />
+                    <Skeleton className="h-4 w-3/4" />
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        {[...Array(5)].map((_, i) => (
+                            <div key={i} className="flex items-center space-x-4">
+                                <Skeleton className="h-12 w-12 rounded-full" />
+                                <div className="space-y-2">
+                                    <Skeleton className="h-4 w-[250px]" />
+                                    <Skeleton className="h-4 w-[200px]" />
                                 </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto w-full max-w-7xl">
-        <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold text-primary">Admin Dashboard</h1>
-            <Button onClick={handleSignOut} variant="outline">Sign Out</Button>
-        </div>
-
+    <div className="w-full">
+        <h1 className="text-3xl font-bold text-primary mb-8">Registrations</h1>
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>Recent Registrations</CardTitle>
@@ -139,6 +116,5 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       </div>
-    </main>
   );
 }
